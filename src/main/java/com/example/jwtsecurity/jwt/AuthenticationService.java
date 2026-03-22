@@ -1,6 +1,8 @@
 package com.example.jwtsecurity.jwt;
 
+import com.example.jwtsecurity.enums.ErrorTypes;
 import com.example.jwtsecurity.enums.Role;
+import com.example.jwtsecurity.exceptionHandler.CustomException;
 import com.example.jwtsecurity.mapper.UserMapper;
 import com.example.jwtsecurity.repository.UserRepository;
 import com.example.jwtsecurity.request.AuthRequestDto;
@@ -8,7 +10,6 @@ import com.example.jwtsecurity.request.RegisterRequestDto;
 import com.example.jwtsecurity.request.ResendOTPRequestDto;
 import com.example.jwtsecurity.request.VerifyOtpRequestDto;
 import com.example.jwtsecurity.response.AuthResponseDto;
-import com.example.jwtsecurity.response.RegisterResponseDto;
 import com.example.jwtsecurity.service.EmailService;
 import com.example.jwtsecurity.service.OTPService;
 import com.example.jwtsecurity.user.UserEntity;
@@ -20,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.util.Objects;
 import java.util.Random;
 
 @Service
@@ -45,7 +45,7 @@ public class AuthenticationService {
     public String register(RegisterRequestDto request){
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("User already exists");
+            throw new CustomException(ErrorTypes.USER_ALREADY_EXIST);
         }
 
         UserEntity userEntity = UserEntity.builder()
