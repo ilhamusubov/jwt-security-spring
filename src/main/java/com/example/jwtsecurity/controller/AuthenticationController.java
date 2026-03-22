@@ -3,6 +3,7 @@ package com.example.jwtsecurity.controller;
 import com.example.jwtsecurity.jwt.AuthenticationService;
 import com.example.jwtsecurity.request.AuthRequestDto;
 import com.example.jwtsecurity.request.RegisterRequestDto;
+import com.example.jwtsecurity.request.VerifyOtpRequestDto;
 import com.example.jwtsecurity.response.AuthResponseDto;
 import com.example.jwtsecurity.response.RegisterResponseDto;
 import jakarta.validation.Valid;
@@ -17,12 +18,17 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public RegisterResponseDto register(@RequestBody @Valid RegisterRequestDto registerRequestDto) {
+    public String register(@RequestBody @Valid RegisterRequestDto registerRequestDto) {
         return authenticationService.register(registerRequestDto);
     }
 
     @PostMapping("/authenticate")
     public AuthResponseDto authenticate(@RequestBody @Valid AuthRequestDto authRequestDto) {
         return authenticationService.authenticate(authRequestDto);
+    }
+
+    @PostMapping("/verify-otp")
+    public AuthResponseDto verifyOtp(@RequestBody VerifyOtpRequestDto request) {
+        return authenticationService.verifyOtp(request);
     }
 }

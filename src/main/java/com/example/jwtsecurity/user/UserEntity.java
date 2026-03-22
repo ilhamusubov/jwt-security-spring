@@ -11,8 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,6 +26,7 @@ public class UserEntity implements UserDetails {
     private String lastName;
     private String email;
     private String password;
+    private boolean verified = false;
 
     @Enumerated(EnumType.STRING)
     private Role role;

@@ -5,14 +5,20 @@ import com.example.jwtsecurity.mapper.UserMapper;
 import com.example.jwtsecurity.repository.UserRepository;
 import com.example.jwtsecurity.request.AuthRequestDto;
 import com.example.jwtsecurity.request.RegisterRequestDto;
+import com.example.jwtsecurity.request.VerifyOtpRequestDto;
 import com.example.jwtsecurity.response.AuthResponseDto;
 import com.example.jwtsecurity.response.RegisterResponseDto;
+import com.example.jwtsecurity.service.OTPService;
 import com.example.jwtsecurity.user.UserEntity;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +34,10 @@ public class AuthenticationService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final OTPService otpService;
 
-    public RegisterResponseDto register(RegisterRequestDto request){
+
+    public String register(RegisterRequestDto request){
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("User already exists");
@@ -44,7 +52,11 @@ public class AuthenticationService {
                 .build();
         userRepository.save(userEntity);
 
-        return userMapper.userEntityToRegisterResponseDto(userEntity);
+        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+        otpService.saveOTP(request.getEmail(), otp);
+
+
+        return otp;
     }
 
 
@@ -56,9 +68,40 @@ public class AuthenticationService {
             UserEntity userEntity = userRepository.findByEmail(request.getEmail()).
                     orElseThrow(() -> new RuntimeException("User not found"));
 
+            if (!userEntity.isVerified()) {
+            throw new RuntimeException("User not verified. Please verify OTP first.");
+        }
+
             String token = jwtService.generateToken(userEntity);
 
             return new AuthResponseDto(token);
 
+    }
+
+
+    @Transactional
+    public AuthResponseDto verifyOtp(VerifyOtpRequestDto request) {
+
+        String savedOtp = otpService.getOTP(request.getEmail());
+
+        if (savedOtp == null || savedOtp.isEmpty()) {
+            throw new RuntimeException("OTP expired or not found");
+        }
+
+        if (!savedOtp.equals(request.getOtp())) {
+            throw new RuntimeException("Invalid OTP");
+        }
+
+        otpService.deleteOTP(request.getEmail());
+
+        UserEntity userEntity = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        userEntity.setVerified(true);
+//        userRepository.save(userEntity);
+
+        String token = jwtService.generateToken(userEntity);
+
+        return new AuthResponseDto(token);
     }
 }
