@@ -1,6 +1,15 @@
 spring:
-  config:
-    import: "classpath:application-mail.yml"
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ilhamusubov882@gmail.com
+    password: llkraoxwmjbwmppj
+    properties:
+      mail:
+        smtp:c
+          auth: true
+          starttls:
+            enable: true
 
   data:
     redis:

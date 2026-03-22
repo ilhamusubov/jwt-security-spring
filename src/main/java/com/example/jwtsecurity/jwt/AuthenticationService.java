@@ -8,6 +8,7 @@ import com.example.jwtsecurity.request.RegisterRequestDto;
 import com.example.jwtsecurity.request.VerifyOtpRequestDto;
 import com.example.jwtsecurity.response.AuthResponseDto;
 import com.example.jwtsecurity.response.RegisterResponseDto;
+import com.example.jwtsecurity.service.EmailService;
 import com.example.jwtsecurity.service.OTPService;
 import com.example.jwtsecurity.user.UserEntity;
 import jakarta.transaction.Transactional;
@@ -36,6 +37,8 @@ public class AuthenticationService {
 
     private final OTPService otpService;
 
+    private final EmailService emailService;
+
 
     public String register(RegisterRequestDto request){
 
@@ -55,8 +58,9 @@ public class AuthenticationService {
         String otp = String.valueOf(new Random().nextInt(900000) + 100000);
         otpService.saveOTP(request.getEmail(), otp);
 
+        emailService.sendOtpEmail(request.getEmail(), otp);
 
-        return otp;
+        return "OTP sent to email";
     }
 
 
@@ -98,7 +102,6 @@ public class AuthenticationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         userEntity.setVerified(true);
-//        userRepository.save(userEntity);
 
         String token = jwtService.generateToken(userEntity);
 
