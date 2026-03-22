@@ -5,6 +5,7 @@ import com.example.jwtsecurity.mapper.UserMapper;
 import com.example.jwtsecurity.repository.UserRepository;
 import com.example.jwtsecurity.request.AuthRequestDto;
 import com.example.jwtsecurity.request.RegisterRequestDto;
+import com.example.jwtsecurity.request.ResendOTPRequestDto;
 import com.example.jwtsecurity.request.VerifyOtpRequestDto;
 import com.example.jwtsecurity.response.AuthResponseDto;
 import com.example.jwtsecurity.response.RegisterResponseDto;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.Random;
 
@@ -65,7 +67,7 @@ public class AuthenticationService {
 
 
 
-    public AuthResponseDto authenticate(AuthRequestDto request){
+    public AuthResponseDto logIn(AuthRequestDto request){
 
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
@@ -106,5 +108,23 @@ public class AuthenticationService {
         String token = jwtService.generateToken(userEntity);
 
         return new AuthResponseDto(token);
+    }
+
+
+    public String resendOtp(ResendOTPRequestDto request) {
+
+        UserEntity user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.isVerified()) {
+            throw new RuntimeException("User already verified");
+        }
+
+        String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
+
+        otpService.saveOTP(request.getEmail(), otp);
+        emailService.sendOtpEmail(request.getEmail(), otp);
+
+        return "OTP resent successfully";
     }
 }
