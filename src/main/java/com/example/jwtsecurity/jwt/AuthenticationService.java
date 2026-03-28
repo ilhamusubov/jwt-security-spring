@@ -1,9 +1,11 @@
 package com.example.jwtsecurity.jwt;
 
+import com.example.jwtsecurity.entity.RefreshTokenEntity;
 import com.example.jwtsecurity.enums.ErrorTypes;
 import com.example.jwtsecurity.enums.Role;
 import com.example.jwtsecurity.exceptionHandler.CustomException;
 import com.example.jwtsecurity.mapper.UserMapper;
+import com.example.jwtsecurity.repository.RefreshTokenRepository;
 import com.example.jwtsecurity.repository.UserRepository;
 import com.example.jwtsecurity.request.AuthRequestDto;
 import com.example.jwtsecurity.request.RegisterRequestDto;
@@ -22,7 +24,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Random;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -42,6 +47,8 @@ public class AuthenticationService {
     private final OTPService otpService;
 
     private final EmailService emailService;
+
+    private final RefreshTokenRepository refreshTokenRepository;
 
 
     public String register(RegisterRequestDto request){
@@ -67,21 +74,20 @@ public class AuthenticationService {
     }
 
 
-
     public AuthResponseDto logIn(AuthRequestDto request){
-        log.info("ActionLog.login.start");
+            log.info("ActionLog.login.start");
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-            UserEntity userEntity = userRepository.findByEmail(request.getEmail()).
-                    orElseThrow(() -> new RuntimeException("User not found"));
+            UserEntity user = userRepository.findByEmail(request.getEmail()).
+                orElseThrow(() -> new RuntimeException("User not found"));
 
-            if (!userEntity.isVerified()) {
+            if (!user.isVerified()) {
             throw new RuntimeException("User not verified. Please verify OTP first.");
         }
-
-            String token = jwtService.generateToken(userEntity);
+            String accessToken = jwtService.generateToken(user);
+            RefreshTokenEntity refreshToken = createRefreshToken(user);
             log.info("ActionLog.login.end");
-            return new AuthResponseDto(token);
+        return new AuthResponseDto(accessToken, refreshToken.getToken());
 
     }
 
@@ -106,9 +112,10 @@ public class AuthenticationService {
 
         userEntity.setVerified(true);
 
-        String token = jwtService.generateToken(userEntity);
+        String accessToken = jwtService.generateToken(userEntity);
+        RefreshTokenEntity refreshToken = createRefreshToken(userEntity);
         log.info("ActionLog.verifyOtp.end");
-        return new AuthResponseDto(token);
+        return new AuthResponseDto(accessToken, refreshToken.getToken());
     }
 
 
@@ -127,5 +134,27 @@ public class AuthenticationService {
         emailService.sendOtpEmail(request.getEmail(), otp);
         log.info("ActionLog.resendOtp.end");
         return "OTP resent successfully";
+    }
+
+
+    public RefreshTokenEntity createRefreshToken(UserEntity userEntity) {
+        log.info("ActionLog.createRefreshToken.start");
+        RefreshTokenEntity refreshToken = new RefreshTokenEntity();
+        refreshToken.setUser(userEntity);
+        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setExpiryDate(Instant.now().plus(7, ChronoUnit.DAYS));
+        return refreshTokenRepository.save(refreshToken);
+    }
+
+    public RefreshTokenEntity verifyToken(String token) {
+        RefreshTokenEntity refreshToken = refreshTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+
+        if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
+            refreshTokenRepository.delete(refreshToken);
+            throw new RuntimeException("Refresh token expired");
+        }
+
+        return refreshToken;
     }
 }

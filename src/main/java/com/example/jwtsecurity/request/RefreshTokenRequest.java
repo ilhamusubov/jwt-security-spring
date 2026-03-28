@@ -1,4 +1,4 @@
-package com.example.jwtsecurity.response;
+package com.example.jwtsecurity.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthResponseDto {
-    private String accessToken;
+public class RefreshTokenRequest {
     private String refreshToken;
 }
