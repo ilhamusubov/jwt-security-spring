@@ -15,6 +15,7 @@ import com.example.jwtsecurity.service.OTPService;
 import com.example.jwtsecurity.user.UserEntity;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -43,11 +45,10 @@ public class AuthenticationService {
 
 
     public String register(RegisterRequestDto request){
-
+        log.info("ActionLog.register.start");
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new CustomException(ErrorTypes.USER_ALREADY_EXIST);
         }
-
         UserEntity userEntity = UserEntity.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -61,14 +62,14 @@ public class AuthenticationService {
         otpService.saveOTP(request.getEmail(), otp);
 
         emailService.sendOtpEmail(request.getEmail(), otp);
-
+        log.info("ActionLog.register.end");
         return "OTP sent to email";
     }
 
 
 
     public AuthResponseDto logIn(AuthRequestDto request){
-
+        log.info("ActionLog.login.start");
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
             UserEntity userEntity = userRepository.findByEmail(request.getEmail()).
@@ -79,7 +80,7 @@ public class AuthenticationService {
         }
 
             String token = jwtService.generateToken(userEntity);
-
+            log.info("ActionLog.login.end");
             return new AuthResponseDto(token);
 
     }
@@ -87,7 +88,7 @@ public class AuthenticationService {
 
     @Transactional
     public AuthResponseDto verifyOtp(VerifyOtpRequestDto request) {
-
+        log.info("ActionLog.verifyOtp.start");
         String savedOtp = otpService.getOTP(request.getEmail());
 
         if (savedOtp == null || savedOtp.isEmpty()) {
@@ -106,13 +107,13 @@ public class AuthenticationService {
         userEntity.setVerified(true);
 
         String token = jwtService.generateToken(userEntity);
-
+        log.info("ActionLog.verifyOtp.end");
         return new AuthResponseDto(token);
     }
 
 
     public String resendOtp(ResendOTPRequestDto request) {
-
+        log.info("ActionLog.resendOtp.start");
         UserEntity user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -124,7 +125,7 @@ public class AuthenticationService {
 
         otpService.saveOTP(request.getEmail(), otp);
         emailService.sendOtpEmail(request.getEmail(), otp);
-
+        log.info("ActionLog.resendOtp.end");
         return "OTP resent successfully";
     }
 }
