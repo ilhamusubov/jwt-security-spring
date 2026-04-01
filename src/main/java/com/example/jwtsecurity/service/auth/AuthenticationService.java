@@ -1,4 +1,4 @@
-package com.example.jwtsecurity.jwt;
+package com.example.jwtsecurity.service.auth;
 
 import com.example.jwtsecurity.entity.RefreshTokenEntity;
 import com.example.jwtsecurity.enums.ErrorTypes;
@@ -50,6 +50,8 @@ public class AuthenticationService {
 
     private final RefreshTokenRepository refreshTokenRepository;
 
+    private final TokenBlacklistService tokenBlacklistService;
+
 
     public String register(RegisterRequestDto request){
         log.info("ActionLog.register.start");
@@ -79,7 +81,7 @@ public class AuthenticationService {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
             UserEntity user = userRepository.findByEmail(request.getEmail()).
-                orElseThrow(() -> new RuntimeException("User not found"));
+                orElseThrow(() -> new CustomException(ErrorTypes.USER_NOT_FOUND));
 
             if (!user.isVerified()) {
             throw new RuntimeException("User not verified. Please verify OTP first.");
@@ -137,8 +139,13 @@ public class AuthenticationService {
     }
 
 
+    @Transactional
     public RefreshTokenEntity createRefreshToken(UserEntity userEntity) {
         log.info("ActionLog.createRefreshToken.start");
+
+        refreshTokenRepository.findByUser(userEntity)
+                .ifPresent(refreshTokenRepository::delete);
+
         RefreshTokenEntity refreshToken = new RefreshTokenEntity();
         refreshToken.setUser(userEntity);
         refreshToken.setToken(UUID.randomUUID().toString());
@@ -156,5 +163,21 @@ public class AuthenticationService {
         }
 
         return refreshToken;
+    }
+
+
+    public void logout(String accessToken, String refreshToken){
+        log.info("ActionLog.logout.start");
+        RefreshTokenEntity refreshTokenEntity = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new CustomException(ErrorTypes.REFRESH_TOKEN_NOT_FOUND));
+        refreshTokenRepository.delete(refreshTokenEntity);
+
+        UserEntity user = refreshTokenEntity.getUser();
+        user.setVerified(false);
+        userRepository.save(user);
+
+        long remainingTime = jwtService.getRemainingTime(accessToken);
+        tokenBlacklistService.blacklistToken(accessToken, remainingTime);
+        log.info("ActionLog.logout.end");
     }
 }

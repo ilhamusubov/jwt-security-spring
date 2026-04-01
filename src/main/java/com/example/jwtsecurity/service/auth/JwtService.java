@@ -1,4 +1,4 @@
-package com.example.jwtsecurity.jwt;
+package com.example.jwtsecurity.service.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -50,6 +50,11 @@ public class JwtService {
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
+    }
+
+    public long getRemainingTime(String token) {
+        Date expiration = extractAllClaims(token).getExpiration();
+        return expiration.getTime() - System.currentTimeMillis();
     }
 
     private Date extractExpiration(String token) {

@@ -8,7 +8,9 @@ public enum ErrorTypes {
     USER_ALREADY_EXIST("ISTIFADECI ARTIQ MOVCUDDUR"),
     NOT_FOUND("Not found"),
     BUSINESS_ERROR("Business rule violation"),
-    SERVER_ERROR("Internal server error");
+    SERVER_ERROR("Internal server error"),
+    REFRESH_TOKEN_NOT_FOUND("Refresh token not found"),
+    USER_NOT_FOUND("User not found");
 
     private final String message;
 
