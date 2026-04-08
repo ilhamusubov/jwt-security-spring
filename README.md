@@ -19,7 +19,7 @@ Layihədə istifadəçi qeydiyyatı, giriş (login), **JWT token əsaslı authen
   
 - ---
 
-## 🔐 Authentication axını
+## Authentication axını
 
 ### 1. Qeydiyyat (Register)
 - İstifadəçi email və şifrə ilə qeydiyyatdan keçir
